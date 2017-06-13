@@ -4,29 +4,34 @@
 //
 
 import XCTest
+
 @testable import Glide
 
 class GlideTests: XCTestCase {
     
-    override func setUp() {
-        super.setUp()
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-    }
-    
-    override func tearDown() {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
-        super.tearDown()
-    }
-    
-    func testExample() {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-    }
-    
-    func testPerformanceExample() {
-        // This is an example of a performance test case.
-        self.measure {
-            // Put the code you want to measure the time of here.
+    func testGliding() {
+        let sampleImages = TestData.dayTimelapseImages
+        if let glide = try? Glide(images: sampleImages) {
+            let timelapsePath = URL.moviesFolder.appendingPathComponent("timelapse.mov")
+
+            glide.render(at: timelapsePath,
+                         completion: { result in
+                            switch result {
+                            case .success(let path):
+                                print("Successfully exported the timelapse at: \(path.path)")
+                            case .error(let error):
+                                print("Failed to export the timelapse: \(error)")
+                            }
+            }, progressHandler: { progress in
+                print("Progress: \(progress.fractionCompleted)")
+            })
+
+            Thread.sleep(forTimeInterval: 2)
+
+            let fileExists = FileManager.default.fileExists(atPath: timelapsePath.absoluteString)
+            XCTAssertTrue(fileExists, "Did not find a timelapse")
+        } else {
+            XCTAssertTrue(false, "Could not initialize Glide")
         }
     }
     
