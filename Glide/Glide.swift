@@ -6,21 +6,21 @@
 import Foundation
 import AVFoundation
 
-enum Result<T> {
+public enum Result<T> {
     case success(T)
     case error(Error)
 }
 
 public struct Glide {
 
-    enum GlideError: Error {
+    public enum GlideError: Error {
         case UnsupportedCodec
         case UnknownMediaSize
         case BadConfiguration
         case WorkInProgressError
     }
 
-    enum FileType {
+    public enum FileType {
         case mov
         case mp4
         case m4v
@@ -43,7 +43,7 @@ public struct Glide {
         }
     }
 
-    enum Codec {
+    public enum Codec {
         case h264
         case hevc
         case jpeg
@@ -76,7 +76,7 @@ public struct Glide {
 
     private let mediaSize: CGSize
 
-    init(images allImages: [CGImage], frameRate aFrameRate: Int32 = 30, fileType aFileType: FileType = .mov, codec aCodec: Codec = .h264) throws {
+    public init(images allImages: [CGImage], frameRate aFrameRate: Int32 = 30, fileType aFileType: FileType = .mov, codec aCodec: Codec = .h264) throws {
         images = allImages
         frameRate = aFrameRate
         fileType = aFileType
@@ -89,7 +89,7 @@ public struct Glide {
         }
     }
 
-    func render(at path: URL,
+    public func render(at path: URL,
                 completion: @escaping (Result<URL>) -> (),
                 progressHandler: ((_ progress: Progress) -> ())? = nil) {
         try? FileManager.default.removeItem(at: path)
@@ -150,7 +150,7 @@ public struct Glide {
 
 }
 
-extension AVAssetWriter {
+fileprivate extension AVAssetWriter {
 
     fileprivate func didAdd(_ assetWriterInput: AVAssetWriterInput) -> Bool {
         if canAdd(assetWriterInput) {
@@ -163,7 +163,7 @@ extension AVAssetWriter {
 
 }
 
-extension AVAssetWriterInput {
+fileprivate extension AVAssetWriterInput {
 
     fileprivate convenience init(size: CGSize, codec: Glide.Codec) {
         let videoSettings = [
@@ -176,7 +176,7 @@ extension AVAssetWriterInput {
 
 }
 
-extension AVAssetWriterInputPixelBufferAdaptor {
+fileprivate extension AVAssetWriterInputPixelBufferAdaptor {
 
     fileprivate convenience init(size: CGSize, assetWriterInput: AVAssetWriterInput) {
         let sourceBufferAttributes = [
@@ -218,7 +218,7 @@ extension AVAssetWriterInputPixelBufferAdaptor {
 
 }
 
-extension CVPixelBuffer {
+fileprivate extension CVPixelBuffer {
 
     fileprivate func fill(withImage image: CGImage) {
         CVPixelBufferLockBaseAddress(self, CVPixelBufferLockFlags(rawValue: 0))
