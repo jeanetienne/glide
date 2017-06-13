@@ -6,6 +6,11 @@
 import Foundation
 import AVFoundation
 
+enum Result<T> {
+    case success(T)
+    case error(Error)
+}
+
 public struct Glide {
 
     enum GlideError: Error {
@@ -84,146 +89,154 @@ public struct Glide {
         }
     }
 
-    func render(at path: URL, progressHandler: ((_ progress: Progress) -> ())? = nil) throws {
+    func render(at path: URL,
+                completion: @escaping (Result<URL>) -> (),
+                progressHandler: ((_ progress: Progress) -> ())? = nil) {
         try? FileManager.default.removeItem(at: path)
-        let assetWriter = try AVAssetWriter(outputURL: path, fileType: fileType.foundationFileType)
+        guard let assetWriter = try? AVAssetWriter(outputURL: path, fileType: fileType.foundationFileType) else {
+            completion(Result.error(NSError()))
+            return
+        }
+        let assetWriterInput = AVAssetWriterInput(size: mediaSize, codec: codec)
+        let pixelBufferAdaptor = AVAssetWriterInputPixelBufferAdaptor(size: mediaSize,
+                                                                      assetWriterInput: assetWriterInput)
 
-        // Private computed property
-        let videoSettings = [
-            AVVideoCodecKey: codec.foundationCodec as AnyObject,
-            AVVideoWidthKey: mediaSize.width as AnyObject,
-            AVVideoHeightKey: mediaSize.height as AnyObject
-        ]
-        let assetWriterInput = AVAssetWriterInput(mediaType: AVMediaType.video, outputSettings: videoSettings)
-
-        // Can be refactored away
-        let sourceBufferAttributes = [
-            (kCVPixelBufferPixelFormatTypeKey as String): Int(kCVPixelFormatType_32ARGB),
-            (kCVPixelBufferWidthKey as String): Float(mediaSize.width),
-            (kCVPixelBufferHeightKey as String): Float(mediaSize.height)] as [String : Any]
-
-        // Can be extracted in a "factory"?
-        let pixelBufferAdaptor = AVAssetWriterInputPixelBufferAdaptor(
-            assetWriterInput: assetWriterInput,
-            sourcePixelBufferAttributes: sourceBufferAttributes
-        )
-
-        // Can be extracted away in an extension that does the check itself and throws
-        if assetWriter.canAdd(assetWriterInput) {
-            assetWriter.add(assetWriterInput)
-        } else {
-            throw GlideError.BadConfiguration
+        if !assetWriter.didAdd(assetWriterInput) {
+            completion(Result.error(NSError()))
+            return
         }
 
         if assetWriter.startWriting() {
             assetWriter.startSession(atSourceTime: kCMTimeZero)
-            assert(pixelBufferAdaptor.pixelBufferPool != nil)
+            guard let _ = pixelBufferAdaptor.pixelBufferPool else {
+                completion(Result.error(NSError()))
+                return
+            }
 
-            let mediaInputQueue = DispatchQueue(label: "Glide.mediaInputQueue")
+            let frameDuration = CMTimeMake(1, self.frameRate)
+            let progress = Progress(totalUnitCount: Int64(self.images.count))
+            var frameCount: Int64 = 0
+            var iterator = self.images.makeIterator()
 
-            assetWriterInput.requestMediaDataWhenReady(on: mediaInputQueue) {
-                let frameDuration = CMTimeMake(1, self.frameRate)
-                let currentProgress = Progress(totalUnitCount: Int64(self.images.count))
+            assetWriterInput.requestMediaDataWhenReady(on: DispatchQueue(label: "glide.queue.mediaInput")) {
+                while assetWriterInput.isReadyForMoreMediaData {
+                    if let nextImage = iterator.next() {
+                        let frameTime = CMTimeMake(frameCount, self.frameRate)
+                        let presentationTime = frameCount == 0 ? frameTime : CMTimeAdd(frameTime, frameDuration)
 
-                var frameCount: Int64 = 0
-                var remainingImages = self.images
+                        if !pixelBufferAdaptor.append(image: nextImage, at: presentationTime) {
+                            assetWriterInput.markAsFinished()
+                            assetWriter.cancelWriting()
+                            completion(Result.error(NSError()))
+                            break
+                        }
 
-                while assetWriterInput.isReadyForMoreMediaData && !remainingImages.isEmpty {
-                    let nextImage = remainingImages.remove(at: 0)
-                    let lastFrameTime = CMTimeMake(frameCount, self.frameRate)
-                    let presentationTime = frameCount == 0 ? lastFrameTime : CMTimeAdd(lastFrameTime, frameDuration)
-
-                    if !self.appendPixelBufferWith(nextImage, pixelBufferAdaptor: pixelBufferAdaptor, presentationTime: presentationTime) {
-//                        throw GlideError.WorkInProgressError
-//                        error = NSError(
-//                            domain: kErrorDomain,
-//                            code: kFailedToAppendPixelBufferError,
-//                            userInfo: ["description": "AVAssetWriterInputPixelBufferAdapter failed to append pixel buffer"]
-//                        )
-
-                        print("Could not append to the pixel buffer")
-                        break
+                        frameCount += 1
+                        progress.completedUnitCount = frameCount
+                        progressHandler?(progress)
+                    } else {
+                        assetWriterInput.markAsFinished()
+                        assetWriter.finishWriting {
+                            completion(Result.success(path))
+                        }
                     }
-
-                    frameCount += 1
-
-                    currentProgress.completedUnitCount = frameCount
-//                    progressHandler(currentProgress)
-                }
-
-                assetWriterInput.markAsFinished()
-                assetWriter.finishWriting {
-//                    if let error = error {
-//                        failure(error)
-//                    } else {
-//                        success(videoOutputURL)
-//                    }
-
-//                    assetWriter = nil
                 }
             }
         } else {
-//            throw GlideError.WorkInProgressError
-//            error = NSError(
-//                domain: kErrorDomain,
-//                code: kFailedToStartAssetWriterError,
-//                userInfo: ["description": "AVAssetWriter failed to start writing"]
-//            )
-            print("The asset writer could not start writing")
+            completion(Result.error(NSError()))
+            return
         }
-
     }
 
-    private func appendPixelBufferWith(_ image: CGImage, pixelBufferAdaptor: AVAssetWriterInputPixelBufferAdaptor, presentationTime: CMTime) -> Bool {
-        var appendSucceeded = false
+}
 
-        autoreleasepool {
-            if let pixelBufferPool = pixelBufferAdaptor.pixelBufferPool {
-                let pixelBufferPointer = UnsafeMutablePointer<CVPixelBuffer?>.allocate(capacity: 1)
-                let status: CVReturn = CVPixelBufferPoolCreatePixelBuffer(
-                    kCFAllocatorDefault,
-                    pixelBufferPool,
-                    pixelBufferPointer
-                )
+extension AVAssetWriter {
 
-                if let pixelBuffer = pixelBufferPointer.pointee, status == 0 {
-                    fillPixelBufferFromImage(image, pixelBuffer: pixelBuffer)
-
-                    appendSucceeded = pixelBufferAdaptor.append(
-                        pixelBuffer,
-                        withPresentationTime: presentationTime
-                    )
-
-                    pixelBufferPointer.deinitialize()
-                } else {
-                    NSLog("error: Failed to allocate pixel buffer from pool")
-                }
-
-                pixelBufferPointer.deallocate(capacity: 1)
-            }
+    fileprivate func didAdd(_ assetWriterInput: AVAssetWriterInput) -> Bool {
+        if canAdd(assetWriterInput) {
+            add(assetWriterInput)
+            return true
+        } else {
+            return false
         }
+    }
+
+}
+
+extension AVAssetWriterInput {
+
+    fileprivate convenience init(size: CGSize, codec: Glide.Codec) {
+        let videoSettings = [
+            AVVideoCodecKey: codec.foundationCodec as AnyObject,
+            AVVideoWidthKey: size.width as AnyObject,
+            AVVideoHeightKey: size.height as AnyObject
+        ]
+        self.init(mediaType: AVMediaType.video, outputSettings: videoSettings)
+    }
+
+}
+
+extension AVAssetWriterInputPixelBufferAdaptor {
+
+    fileprivate convenience init(size: CGSize, assetWriterInput: AVAssetWriterInput) {
+        let sourceBufferAttributes = [
+            (kCVPixelBufferPixelFormatTypeKey as String): Int(kCVPixelFormatType_32ARGB),
+            (kCVPixelBufferWidthKey as String): Float(size.width),
+            (kCVPixelBufferHeightKey as String): Float(size.height)
+            ] as [String : Any]
+
+        self.init(assetWriterInput: assetWriterInput,
+                  sourcePixelBufferAttributes: sourceBufferAttributes)
+    }
+
+    fileprivate func append(image: CGImage, at presentationTime: CMTime) -> Bool {
+        guard let pixelBufferPool = pixelBufferPool else {
+            return false
+        }
+
+        let pixelBufferCapacity = 1
+        let pixelBufferPointer = UnsafeMutablePointer<CVPixelBuffer?>.allocate(capacity: pixelBufferCapacity)
+        let pixelBufferCreated = CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault,
+                                                                    pixelBufferPool,
+                                                                    pixelBufferPointer)
+
+        guard let pixelBuffer = pixelBufferPointer.pointee,
+            pixelBufferCreated == kCVReturnSuccess else {
+                NSLog("error: Failed to allocate pixel buffer from pool")
+                return false
+        }
+
+        pixelBuffer.fill(withImage: image)
+        let appendSucceeded = append(pixelBuffer,
+                                     withPresentationTime: presentationTime)
+
+        pixelBufferPointer.deinitialize()
+        pixelBufferPointer.deallocate(capacity: pixelBufferCapacity)
 
         return appendSucceeded
     }
 
-    private func fillPixelBufferFromImage(_ image: CGImage, pixelBuffer: CVPixelBuffer) {
-        CVPixelBufferLockBaseAddress(pixelBuffer, CVPixelBufferLockFlags(rawValue: 0))
+}
 
-        let pixelData = CVPixelBufferGetBaseAddress(pixelBuffer)
+extension CVPixelBuffer {
+
+    fileprivate func fill(withImage image: CGImage) {
+        CVPixelBufferLockBaseAddress(self, CVPixelBufferLockFlags(rawValue: 0))
+
+        let pixelData = CVPixelBufferGetBaseAddress(self)
         let rgbColorSpace = CGColorSpaceCreateDeviceRGB()
-        let context = CGContext(
-            data: pixelData,
-            width: Int(image.width),
-            height: Int(image.height),
-            bitsPerComponent: 8,
-            bytesPerRow: CVPixelBufferGetBytesPerRow(pixelBuffer),
-            space: rgbColorSpace,
-            bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue
-        )
+        let context = CGContext(data: pixelData,
+                                width: Int(image.width),
+                                height: Int(image.height),
+                                bitsPerComponent: 8,
+                                bytesPerRow: CVPixelBufferGetBytesPerRow(self),
+                                space: rgbColorSpace,
+                                bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue)
 
-        context?.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        let rect = CGRect(x: 0, y: 0, width: image.width, height: image.height)
+        context?.draw(image, in: rect)
 
-        CVPixelBufferUnlockBaseAddress(pixelBuffer, CVPixelBufferLockFlags(rawValue: 0))
+        CVPixelBufferUnlockBaseAddress(self, CVPixelBufferLockFlags(rawValue: 0))
     }
 
 }
