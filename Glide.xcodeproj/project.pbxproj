@@ -300,6 +300,7 @@
 		F702F5DA1EEF82AC00441C97 /* TestData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestData.swift; sourceTree = "<group>"; };
 		F702F5DB1EEF82AC00441C97 /* URL+Folders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "URL+Folders.swift"; sourceTree = "<group>"; };
 		F702FACF1EEF8A5200441C97 /* NSImage+CGImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSImage+CGImage.swift"; sourceTree = "<group>"; };
+		F75C72851F04D9DE00290E5B /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		F7BB4F781EEF66D7005D737A /* Glide.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Glide.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F7BB4F7C1EEF66D7005D737A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		F7BB4F811EEF66D7005D737A /* GlideTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GlideTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -620,6 +621,7 @@
 			children = (
 				F7BB4F7A1EEF66D7005D737A /* Glide */,
 				F7BB4F851EEF66D7005D737A /* GlideTests */,
+				F75C72851F04D9DE00290E5B /* README.md */,
 				F7BB4F791EEF66D7005D737A /* Products */,
 			);
 			sourceTree = "<group>";
