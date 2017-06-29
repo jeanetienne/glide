@@ -17,9 +17,9 @@ class GlideTests: XCTestCase {
         let outputSize = CGRect(x: 0, y: 0, width: 1500, height: 1100)
         let aspectRatio = CGSize(width: 2048, height: 1365)
         let outputWindow = AVMakeRect(aspectRatio: aspectRatio, insideRect: outputSize).integral
-        let sampleFrames = framesPaths.map { Glide.Frame(imagePath: $0, duration: 1/60, outputWindow: outputWindow) }
+        let sampleFrames = framesPaths.map { Glide.Frame(imagePath: $0, outputWindow: outputWindow, backgroundColor: CGColor(gray: 0.1, alpha: 1)) }
 
-        if let glide = try? Glide(frames: sampleFrames, frameRate: 30, outputSize: outputSize.size) {
+        if let glide = try? Glide(frames: sampleFrames, frameRate: 60, outputSize: outputSize.size) {
             let timelapsePath = URL.moviesFolder.appendingPathComponent("timelapse.mov")
 
             glide.render(at: timelapsePath,

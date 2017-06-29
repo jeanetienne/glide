@@ -20,7 +20,7 @@ public struct Glide {
 
         let imagePath: URL
 
-        let duration: TimeInterval
+        let repeatCounter: Int64
 
         /// Represents which part of the image to use when painting the frame
         let cropRect: CGRect
@@ -43,9 +43,9 @@ public struct Glide {
             return nil
         }
 
-        init(imagePath path: URL, duration aDuration: TimeInterval, outputWindow anOutputWindow: CGRect, cropRect aCropRect: CGRect = CGRect.zero, backgroundColor aBackgroundColor: CGColor = CGColor.black) {
+        init(imagePath path: URL, outputWindow anOutputWindow: CGRect, repeat aRepeatCounter: Int64 = 1, cropRect aCropRect: CGRect = CGRect.zero, backgroundColor aBackgroundColor: CGColor = CGColor.black) {
             imagePath = path
-            duration = aDuration
+            repeatCounter = aRepeatCounter
             outputWindow = anOutputWindow
             cropRect = aCropRect
             backgroundColor = aBackgroundColor
@@ -120,6 +120,10 @@ public struct Glide {
 
     private let outputSize: CGSize
 
+    private var totalFrameCount: Int64 {
+        return frames.reduce(0) { $0 + $1.repeatCounter }
+    }
+
     public init(frames allFrames: [Frame], frameRate aFrameRate: Int32 = 30, outputSize anOutputSize: CGSize = CGSize.zero, fileType aFileType: FileType = .mov, codec aCodec: Codec = .h264) throws {
         frames = allFrames
         frameRate = aFrameRate
@@ -161,27 +165,27 @@ public struct Glide {
                 return
             }
 
-            let frameDuration = CMTimeMake(1, frameRate)
-            let progress = Progress(totalUnitCount: Int64(frames.count))
+            let progress = Progress(totalUnitCount: totalFrameCount)
             var frameCount: Int64 = 0
             var iterator = frames.makeIterator()
 
             assetWriterInput.requestMediaDataWhenReady(on: DispatchQueue(label: "glide.queue.mediaInput")) {
                 while assetWriterInput.isReadyForMoreMediaData {
                     if let nextFrame = iterator.next() {
-                        let frameTime = CMTimeMake(frameCount, self.frameRate)
-                        let presentationTime = frameCount == 0 ? frameTime : CMTimeAdd(frameTime, frameDuration)
 
-                        if !pixelBufferAdaptor.append(frame: nextFrame, forOutputSize: self.outputSize, at: presentationTime) {
-                            assetWriterInput.markAsFinished()
-                            assetWriter.cancelWriting()
-                            completion(Result.error(NSError()))
-                            break
+                        for _ in 0..<nextFrame.repeatCounter {
+                            let frameTime = CMTimeMake(frameCount, self.frameRate)
+                            if !pixelBufferAdaptor.append(frame: nextFrame, forOutputSize: self.outputSize, at: frameTime) {
+                                assetWriterInput.markAsFinished()
+                                assetWriter.cancelWriting()
+                                completion(Result.error(NSError()))
+                                break
+                            }
+
+                            frameCount += 1
+                            progress.completedUnitCount = frameCount
+                            progressHandler?(progress)
                         }
-
-                        frameCount += 1
-                        progress.completedUnitCount = frameCount
-                        progressHandler?(progress)
                     } else {
                         assetWriterInput.markAsFinished()
                         assetWriter.finishWriting {
