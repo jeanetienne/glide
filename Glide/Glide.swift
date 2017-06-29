@@ -7,11 +7,51 @@ import Foundation
 import AVFoundation
 
 public enum Result<T> {
+
     case success(T)
+
     case error(Error)
+
 }
 
 public struct Glide {
+
+    public struct Frame {
+
+        let imagePath: URL
+
+        let repeatCounter: Int64
+
+        /// Represents which part of the image to use when painting the frame
+        let cropRect: CGRect
+
+        /// Represents where the frame will be painted within the `Glide.outputWindow`
+        let outputWindow: CGRect
+
+        let backgroundColor: CGColor
+
+        var image: CGImage? {
+            if let imageSource = CGImageSourceCreateWithURL(imagePath as CFURL, nil) {
+                var image = CGImageSourceCreateImageAtIndex(imageSource, 0, nil)
+                if cropRect != CGRect.zero {
+                    image = image?.cropping(to: cropRect)
+                }
+
+                return image
+            }
+
+            return nil
+        }
+
+        init(imagePath path: URL, outputWindow anOutputWindow: CGRect, repeat aRepeatCounter: Int64 = 1, cropRect aCropRect: CGRect = CGRect.zero, backgroundColor aBackgroundColor: CGColor = CGColor.black) {
+            imagePath = path
+            repeatCounter = aRepeatCounter
+            outputWindow = anOutputWindow
+            cropRect = aCropRect
+            backgroundColor = aBackgroundColor
+        }
+
+    }
 
     public enum GlideError: Error {
         case UnsupportedCodec
@@ -55,18 +95,22 @@ public struct Glide {
             case .h264:
                 return AVVideoCodecH264
             case .hevc:
-                return AVVideoCodecH264
+                if #available(OSX 10.13, *) {
+                    return AVVideoCodecHEVC
+                } else {
+                    return AVVideoCodecH264
+                }
             case .jpeg:
                 return AVVideoCodecJPEG
             case .proRes4444:
-                return AVVideoCodecH264
+                return AVVideoCodecAppleProRes4444
             case .proRes422:
-                return AVVideoCodecH264
+                return AVVideoCodecAppleProRes422
             }
         }
     }
 
-    private let images: [CGImage]
+    private let frames: [Frame]
 
     private let frameRate: Int32
 
@@ -74,18 +118,26 @@ public struct Glide {
 
     private let codec: Codec
 
-    private let mediaSize: CGSize
+    private let outputSize: CGSize
 
-    public init(images allImages: [CGImage], frameRate aFrameRate: Int32 = 30, fileType aFileType: FileType = .mov, codec aCodec: Codec = .h264) throws {
-        images = allImages
+    private var totalFrameCount: Int64 {
+        return frames.reduce(0) { $0 + $1.repeatCounter }
+    }
+
+    public init(frames allFrames: [Frame], frameRate aFrameRate: Int32 = 30, outputSize anOutputSize: CGSize = CGSize.zero, fileType aFileType: FileType = .mov, codec aCodec: Codec = .h264) throws {
+        frames = allFrames
         frameRate = aFrameRate
         fileType = aFileType
         codec = aCodec
 
-        if let firstImage = allImages.first {
-            mediaSize = CGSize(width: firstImage.width, height: firstImage.height)
+        if anOutputSize == CGSize.zero {
+            if let firstImage = allFrames.first?.image {
+                outputSize = CGSize(width: firstImage.width, height: firstImage.height)
+            } else {
+                throw GlideError.UnknownMediaSize
+            }
         } else {
-            throw GlideError.UnknownMediaSize
+            outputSize = anOutputSize
         }
     }
 
@@ -94,14 +146,16 @@ public struct Glide {
                 progressHandler: ((_ progress: Progress) -> ())? = nil) {
         try? FileManager.default.removeItem(at: path)
         guard let assetWriter = try? AVAssetWriter(outputURL: path, fileType: fileType.foundationFileType) else {
+            // TODO: Better error
             completion(Result.error(NSError()))
             return
         }
-        let assetWriterInput = AVAssetWriterInput(size: mediaSize, codec: codec)
-        let pixelBufferAdaptor = AVAssetWriterInputPixelBufferAdaptor(size: mediaSize,
+        let assetWriterInput = AVAssetWriterInput(size: outputSize, codec: codec)
+        let pixelBufferAdaptor = AVAssetWriterInputPixelBufferAdaptor(size: outputSize,
                                                                       assetWriterInput: assetWriterInput)
 
         if !assetWriter.didAdd(assetWriterInput) {
+            // TODO: Better error
             completion(Result.error(NSError()))
             return
         }
@@ -109,31 +163,33 @@ public struct Glide {
         if assetWriter.startWriting() {
             assetWriter.startSession(atSourceTime: kCMTimeZero)
             guard let _ = pixelBufferAdaptor.pixelBufferPool else {
+                // TODO: Better error
                 completion(Result.error(NSError()))
                 return
             }
 
-            let frameDuration = CMTimeMake(1, self.frameRate)
-            let progress = Progress(totalUnitCount: Int64(self.images.count))
+            let progress = Progress(totalUnitCount: totalFrameCount)
             var frameCount: Int64 = 0
-            var iterator = self.images.makeIterator()
+            var iterator = frames.makeIterator()
 
             assetWriterInput.requestMediaDataWhenReady(on: DispatchQueue(label: "glide.queue.mediaInput")) {
                 while assetWriterInput.isReadyForMoreMediaData {
-                    if let nextImage = iterator.next() {
-                        let frameTime = CMTimeMake(frameCount, self.frameRate)
-                        let presentationTime = frameCount == 0 ? frameTime : CMTimeAdd(frameTime, frameDuration)
+                    if let nextFrame = iterator.next() {
 
-                        if !pixelBufferAdaptor.append(image: nextImage, at: presentationTime) {
-                            assetWriterInput.markAsFinished()
-                            assetWriter.cancelWriting()
-                            completion(Result.error(NSError()))
-                            break
+                        for _ in 0..<nextFrame.repeatCounter {
+                            let frameTime = CMTimeMake(frameCount, self.frameRate)
+                            if !pixelBufferAdaptor.append(frame: nextFrame, forOutputSize: self.outputSize, at: frameTime) {
+                                assetWriterInput.markAsFinished()
+                                assetWriter.cancelWriting()
+                                // TODO: Better error
+                                completion(Result.error(NSError()))
+                                break
+                            }
+
+                            frameCount += 1
+                            progress.completedUnitCount = frameCount
+                            progressHandler?(progress)
                         }
-
-                        frameCount += 1
-                        progress.completedUnitCount = frameCount
-                        progressHandler?(progress)
                     } else {
                         assetWriterInput.markAsFinished()
                         assetWriter.finishWriting {
@@ -143,6 +199,7 @@ public struct Glide {
                 }
             }
         } else {
+            // TODO: Better error
             completion(Result.error(NSError()))
             return
         }
@@ -189,7 +246,7 @@ fileprivate extension AVAssetWriterInputPixelBufferAdaptor {
                   sourcePixelBufferAttributes: sourceBufferAttributes)
     }
 
-    fileprivate func append(image: CGImage, at presentationTime: CMTime) -> Bool {
+    fileprivate func append(frame: Glide.Frame, forOutputSize outputSize: CGSize, at presentationTime: CMTime) -> Bool {
         guard let pixelBufferPool = pixelBufferPool else {
             return false
         }
@@ -202,11 +259,12 @@ fileprivate extension AVAssetWriterInputPixelBufferAdaptor {
 
         guard let pixelBuffer = pixelBufferPointer.pointee,
             pixelBufferCreated == kCVReturnSuccess else {
+                // TODO: Better error
                 NSLog("error: Failed to allocate pixel buffer from pool")
                 return false
         }
 
-        pixelBuffer.fill(withImage: image)
+        pixelBuffer.fill(withFrame: frame, forOutputSize: outputSize)
         let appendSucceeded = append(pixelBuffer,
                                      withPresentationTime: presentationTime)
 
@@ -220,21 +278,25 @@ fileprivate extension AVAssetWriterInputPixelBufferAdaptor {
 
 fileprivate extension CVPixelBuffer {
 
-    fileprivate func fill(withImage image: CGImage) {
+    fileprivate func fill(withFrame frame: Glide.Frame, forOutputSize outputSize: CGSize) {
+        guard let image = frame.image else {
+            return
+        }
         CVPixelBufferLockBaseAddress(self, CVPixelBufferLockFlags(rawValue: 0))
 
         let pixelData = CVPixelBufferGetBaseAddress(self)
         let rgbColorSpace = CGColorSpaceCreateDeviceRGB()
         let context = CGContext(data: pixelData,
-                                width: Int(image.width),
-                                height: Int(image.height),
+                                width: Int(outputSize.width),
+                                height: Int(outputSize.height),
                                 bitsPerComponent: 8,
                                 bytesPerRow: CVPixelBufferGetBytesPerRow(self),
                                 space: rgbColorSpace,
                                 bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue)
 
-        let rect = CGRect(x: 0, y: 0, width: image.width, height: image.height)
-        context?.draw(image, in: rect)
+        context?.setFillColor(frame.backgroundColor)
+        context?.fill(CGRect(origin: CGPoint.zero, size: outputSize))
+        context?.draw(image, in: frame.outputWindow)
 
         CVPixelBufferUnlockBaseAddress(self, CVPixelBufferLockFlags(rawValue: 0))
     }

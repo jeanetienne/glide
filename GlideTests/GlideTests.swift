@@ -7,11 +7,19 @@ import XCTest
 
 @testable import Glide
 
+import AVFoundation
+
 class GlideTests: XCTestCase {
     
     func testGliding() {
-        let sampleImages = TestData.dayTimelapseImages
-        if let glide = try? Glide(images: sampleImages) {
+        let framesPaths = TestData.sunsetTimelapsePaths
+
+        let outputSize = CGRect(x: 0, y: 0, width: 1500, height: 1100)
+        let aspectRatio = CGSize(width: 2048, height: 1365)
+        let outputWindow = AVMakeRect(aspectRatio: aspectRatio, insideRect: outputSize).integral
+        let sampleFrames = framesPaths.map { Glide.Frame(imagePath: $0, outputWindow: outputWindow, backgroundColor: CGColor(gray: 0.1, alpha: 1)) }
+
+        if let glide = try? Glide(frames: sampleFrames, frameRate: 60, outputSize: outputSize.size) {
             let timelapsePath = URL.moviesFolder.appendingPathComponent("timelapse.mov")
 
             glide.render(at: timelapsePath,
@@ -26,7 +34,7 @@ class GlideTests: XCTestCase {
                 print("Progress: \(progress.fractionCompleted)")
             })
 
-            Thread.sleep(forTimeInterval: 2)
+            Thread.sleep(forTimeInterval: 15)
 
             let fileExists = FileManager.default.fileExists(atPath: timelapsePath.absoluteString)
             XCTAssertTrue(fileExists, "Did not find a timelapse")
