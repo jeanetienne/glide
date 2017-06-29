@@ -58,13 +58,17 @@ public struct Glide {
             case .h264:
                 return AVVideoCodecH264
             case .hevc:
-                return AVVideoCodecH264
+                if #available(OSX 10.13, *) {
+                    return AVVideoCodecHEVC
+                } else {
+                    return AVVideoCodecH264
+                }
             case .jpeg:
                 return AVVideoCodecJPEG
             case .proRes4444:
-                return AVVideoCodecH264
+                return AVVideoCodecAppleProRes4444
             case .proRes422:
-                return AVVideoCodecH264
+                return AVVideoCodecAppleProRes422
             }
         }
     }
