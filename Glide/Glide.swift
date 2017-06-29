@@ -146,6 +146,7 @@ public struct Glide {
                 progressHandler: ((_ progress: Progress) -> ())? = nil) {
         try? FileManager.default.removeItem(at: path)
         guard let assetWriter = try? AVAssetWriter(outputURL: path, fileType: fileType.foundationFileType) else {
+            // TODO: Better error
             completion(Result.error(NSError()))
             return
         }
@@ -154,6 +155,7 @@ public struct Glide {
                                                                       assetWriterInput: assetWriterInput)
 
         if !assetWriter.didAdd(assetWriterInput) {
+            // TODO: Better error
             completion(Result.error(NSError()))
             return
         }
@@ -161,6 +163,7 @@ public struct Glide {
         if assetWriter.startWriting() {
             assetWriter.startSession(atSourceTime: kCMTimeZero)
             guard let _ = pixelBufferAdaptor.pixelBufferPool else {
+                // TODO: Better error
                 completion(Result.error(NSError()))
                 return
             }
@@ -178,6 +181,7 @@ public struct Glide {
                             if !pixelBufferAdaptor.append(frame: nextFrame, forOutputSize: self.outputSize, at: frameTime) {
                                 assetWriterInput.markAsFinished()
                                 assetWriter.cancelWriting()
+                                // TODO: Better error
                                 completion(Result.error(NSError()))
                                 break
                             }
@@ -195,6 +199,7 @@ public struct Glide {
                 }
             }
         } else {
+            // TODO: Better error
             completion(Result.error(NSError()))
             return
         }
@@ -254,6 +259,7 @@ fileprivate extension AVAssetWriterInputPixelBufferAdaptor {
 
         guard let pixelBuffer = pixelBufferPointer.pointee,
             pixelBufferCreated == kCVReturnSuccess else {
+                // TODO: Better error
                 NSLog("error: Failed to allocate pixel buffer from pool")
                 return false
         }
