@@ -7,8 +7,11 @@ import Foundation
 import AVFoundation
 
 public enum Result<T> {
+
     case success(T)
+
     case error(Error)
+
 }
 
 public struct Glide {
