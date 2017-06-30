@@ -957,6 +957,7 @@
 				F7BB4F741EEF66D7005D737A /* Frameworks */,
 				F7BB4F751EEF66D7005D737A /* Headers */,
 				F7BB4F761EEF66D7005D737A /* Resources */,
+				F783B0F71F05DCAE00B8B9E7 /* Increment Build Number */,
 			);
 			buildRules = (
 			);
@@ -1306,6 +1307,23 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		F783B0F71F05DCAE00B8B9E7 /* Increment Build Number */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Increment Build Number";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "sh update-version.sh --xcodeproj=$PROJECT_FILE --plist=$INFOPLIST_FILE";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		F7BB4F731EEF66D7005D737A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -1368,7 +1386,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 10;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -1426,7 +1444,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 10;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1456,7 +1474,7 @@
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = N44EJ7YB22;
 				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 10;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				FRAMEWORK_VERSION = A;
 				INFOPLIST_FILE = Glide/Info.plist;
@@ -1479,7 +1497,7 @@
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = N44EJ7YB22;
 				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 10;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				FRAMEWORK_VERSION = A;
 				INFOPLIST_FILE = Glide/Info.plist;
