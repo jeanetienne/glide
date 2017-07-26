@@ -12,6 +12,9 @@
 		F702F5DD1EEF838000441C97 /* TestData.swift in Sources */ = {isa = PBXBuildFile; fileRef = F702F5DA1EEF82AC00441C97 /* TestData.swift */; };
 		F702F5DE1EEF838000441C97 /* URL+Folders.swift in Sources */ = {isa = PBXBuildFile; fileRef = F702F5DB1EEF82AC00441C97 /* URL+Folders.swift */; };
 		F702FAD01EEF8A5600441C97 /* NSImage+CGImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = F702FACF1EEF8A5200441C97 /* NSImage+CGImage.swift */; };
+		F724DFA71F287AAF000E601E /* 01.png in Resources */ = {isa = PBXBuildFile; fileRef = F724DFA41F287A9F000E601E /* 01.png */; };
+		F724DFA81F287AAF000E601E /* 02.jpg in Resources */ = {isa = PBXBuildFile; fileRef = F724DFA51F287A9F000E601E /* 02.jpg */; };
+		F724DFA91F287AAF000E601E /* 03.gif in Resources */ = {isa = PBXBuildFile; fileRef = F724DFA61F287A9F000E601E /* 03.gif */; };
 		F7BB4F821EEF66D7005D737A /* Glide.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F7BB4F781EEF66D7005D737A /* Glide.framework */; };
 		F7BB4F871EEF66D7005D737A /* GlideTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7BB4F861EEF66D7005D737A /* GlideTests.swift */; };
 		F7C80C991EEFABDA00ED9CA7 /* NSImage+Name.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7C80C981EEFABDA00ED9CA7 /* NSImage+Name.swift */; };
@@ -300,6 +303,9 @@
 		F702F5DA1EEF82AC00441C97 /* TestData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestData.swift; sourceTree = "<group>"; };
 		F702F5DB1EEF82AC00441C97 /* URL+Folders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "URL+Folders.swift"; sourceTree = "<group>"; };
 		F702FACF1EEF8A5200441C97 /* NSImage+CGImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSImage+CGImage.swift"; sourceTree = "<group>"; };
+		F724DFA41F287A9F000E601E /* 01.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = 01.png; sourceTree = "<group>"; };
+		F724DFA51F287A9F000E601E /* 02.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 02.jpg; sourceTree = "<group>"; };
+		F724DFA61F287A9F000E601E /* 03.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = 03.gif; sourceTree = "<group>"; };
 		F75C72851F04D9DE00290E5B /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		F7BB4F781EEF66D7005D737A /* Glide.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Glide.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F7BB4F7C1EEF66D7005D737A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -610,10 +616,21 @@
 		F702F5DF1EEF856400441C97 /* Sample-data */ = {
 			isa = PBXGroup;
 			children = (
+				F724DFA31F287A9F000E601E /* basic */,
 				F7C80C9C1EEFC85800ED9CA7 /* day */,
 				F7C80CCF1EEFC85800ED9CA7 /* sunset */,
 			);
 			path = "Sample-data";
+			sourceTree = "<group>";
+		};
+		F724DFA31F287A9F000E601E /* basic */ = {
+			isa = PBXGroup;
+			children = (
+				F724DFA41F287A9F000E601E /* 01.png */,
+				F724DFA51F287A9F000E601E /* 02.jpg */,
+				F724DFA61F287A9F000E601E /* 03.gif */,
+			);
+			path = basic;
 			sourceTree = "<group>";
 		};
 		F7BB4F6E1EEF66D7005D737A = {
@@ -1157,6 +1174,7 @@
 				F7C80E561EEFC86900ED9CA7 /* 2014-09-23@19-30-25.jpg in Resources */,
 				F7C80DFD1EEFC86900ED9CA7 /* 2014-09-23@19-00-45.jpg in Resources */,
 				F7C80E2C1EEFC86900ED9CA7 /* 2014-09-23@19-16-25.jpg in Resources */,
+				F724DFA81F287AAF000E601E /* 02.jpg in Resources */,
 				F7C80DD41EEFC86900ED9CA7 /* 2014-09-23@16-16-58.jpg in Resources */,
 				F7C80E671EEFC86900ED9CA7 /* 2014-09-23@19-36-05.jpg in Resources */,
 				F7C80E1E1EEFC86900ED9CA7 /* 2014-09-23@19-11-45.jpg in Resources */,
@@ -1169,6 +1187,7 @@
 				F7C80E2E1EEFC86900ED9CA7 /* 2014-09-23@19-17-05.jpg in Resources */,
 				F7C80DBE1EEFC86900ED9CA7 /* 2014-09-23@16-09-39.jpg in Resources */,
 				F7C80E901EEFC86900ED9CA7 /* 2014-09-23@19-49-45.jpg in Resources */,
+				F724DFA91F287AAF000E601E /* 03.gif in Resources */,
 				F7C80E551EEFC86900ED9CA7 /* 2014-09-23@19-30-05.jpg in Resources */,
 				F7C80DD61EEFC86900ED9CA7 /* 2014-09-23@16-17-39.jpg in Resources */,
 				F7C80DD31EEFC86900ED9CA7 /* 2014-09-23@16-16-38.jpg in Resources */,
@@ -1253,6 +1272,7 @@
 				F7C80DD81EEFC86900ED9CA7 /* 2014-09-23@16-18-18.jpg in Resources */,
 				F7C80DDF1EEFC86900ED9CA7 /* 2014-09-23@18-50-45.jpg in Resources */,
 				F7C80DB11EEFC86900ED9CA7 /* 2014-09-23@16-05-19.jpg in Resources */,
+				F724DFA71F287AAF000E601E /* 01.png in Resources */,
 				F7C80DE21EEFC86900ED9CA7 /* 2014-09-23@18-51-45.jpg in Resources */,
 				F7C80DF51EEFC86900ED9CA7 /* 2014-09-23@18-58-05.jpg in Resources */,
 				F7C80E0E1EEFC86900ED9CA7 /* 2014-09-23@19-06-25.jpg in Resources */,
