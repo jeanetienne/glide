@@ -10,9 +10,90 @@ import XCTest
 import AVFoundation
 
 class GlideTests: XCTestCase {
-    
-    func testGliding() {
-        let framesPaths = TestData.sunsetTimelapsePaths
+
+    override func setUp() {
+        super.setUp()
+        TestData.createCacheFolder()
+    }
+
+    override func tearDown() {
+        super.tearDown()
+        TestData.removeCacheFolder()
+    }
+
+    func testBasicRender() {
+        let glidingExpectation = expectation(description: "Basic render")
+
+        let outputSize = CGRect(x: 0, y: 0, width: 640, height: 480)
+        let aspectRatio = CGSize(width: 640, height: 480)
+        let outputWindow = AVMakeRect(aspectRatio: aspectRatio, insideRect: outputSize).integral
+        let sampleFrames = TestData.basicPaths.map {
+            Glide.Frame(imagePath: $0, outputWindow: outputWindow)
+        }
+
+        if let glide = try? Glide(frames: sampleFrames, frameRate: 5, outputSize: outputSize.size) {
+            let timelapsePath = URL.cacheFolder.appendingPathComponent("basic.mov")
+
+            glide.render(at: timelapsePath, completion: { result in
+                switch result {
+                case .success(_):
+                    XCTAssertTrue(true)
+                    glidingExpectation.fulfill()
+                case .error(_):
+                    XCTAssertTrue(false)
+                }
+            })
+
+            waitForExpectations(timeout: 30, handler: { error in
+                if let error = error {
+                    XCTAssertTrue(false, "Expectation failed: \(error)")
+                }
+            })
+        } else {
+            XCTAssertTrue(false, "Could not initialize Glide")
+        }
+    }
+
+    func testCroppedBasicRender() {
+        let glidingExpectation = expectation(description: "Cropped basic render")
+
+        let outputSize = CGRect(x: 0, y: 0, width: 300, height: 300)
+        let outputWindow = CGRect(x: 50, y: 50, width: 200, height: 200)
+        let cropRect = CGRect(x: 180, y: 90, width: 300, height: 300)
+        let sampleFrames = TestData.basicPaths.map {
+            Glide.Frame(imagePath: $0,
+                        outputWindow: outputWindow,
+                        cropRect: cropRect,
+                        backgroundColor: CGColor(red: 0.1, green: 1, blue: 0.1, alpha: 1))
+        }
+
+        if let glide = try? Glide(frames: sampleFrames, frameRate: 5, outputSize: outputSize.size) {
+            let timelapsePath = URL.cacheFolder.appendingPathComponent("basic-cropped.mov")
+
+            glide.render(at: timelapsePath, completion: { result in
+                switch result {
+                case .success(_):
+                    XCTAssertTrue(true)
+                    glidingExpectation.fulfill()
+                case .error(_):
+                    XCTAssertTrue(false)
+                }
+            })
+
+            waitForExpectations(timeout: 30, handler: { error in
+                if let error = error {
+                    XCTAssertTrue(false, "Expectation failed: \(error)")
+                }
+            })
+        } else {
+            XCTAssertTrue(false, "Could not initialize Glide")
+        }
+    }
+
+    func testShortTimelapseRender() {
+        let glidingExpectation = expectation(description: "Short timelapse render")
+
+        let framesPaths = TestData.dayTimelapsePaths
 
         let outputSize = CGRect(x: 0, y: 0, width: 1500, height: 1100)
         let aspectRatio = CGSize(width: 2048, height: 1365)
@@ -20,24 +101,24 @@ class GlideTests: XCTestCase {
         let sampleFrames = framesPaths.map { Glide.Frame(imagePath: $0, outputWindow: outputWindow, backgroundColor: CGColor(gray: 0.1, alpha: 1)) }
 
         if let glide = try? Glide(frames: sampleFrames, frameRate: 60, outputSize: outputSize.size) {
-            let timelapsePath = URL.moviesFolder.appendingPathComponent("timelapse.mov")
+            let timelapsePath = URL.cacheFolder.appendingPathComponent("short-timelapse.mov")
 
-            glide.render(at: timelapsePath,
-                         completion: { result in
-                            switch result {
-                            case .success(let path):
-                                print("Successfully exported the timelapse at: \(path.path)")
-                            case .error(let error):
-                                print("Failed to export the timelapse: \(error)")
-                            }
-            }, progressHandler: { progress in
-                print("Progress: \(progress.fractionCompleted)")
+            glide.render(at: timelapsePath, completion: { result in
+                switch result {
+                case .success(_):
+                    XCTAssertTrue(true)
+                    glidingExpectation.fulfill()
+                    print("Fulfilled expectation")
+                case .error(_):
+                    XCTAssertTrue(false)
+                }
             })
 
-            Thread.sleep(forTimeInterval: 15)
-
-            let fileExists = FileManager.default.fileExists(atPath: timelapsePath.absoluteString)
-            XCTAssertTrue(fileExists, "Did not find a timelapse")
+            waitForExpectations(timeout: 30, handler: { error in
+                if let error = error {
+                    XCTAssertTrue(false, "Expectation failed: \(error)")
+                }
+            })
         } else {
             XCTAssertTrue(false, "Could not initialize Glide")
         }
