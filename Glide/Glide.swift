@@ -6,15 +6,12 @@
 import Foundation
 import AVFoundation
 
-public enum Result<T> {
+public class Glide {
 
-    case success(T)
-
-    case error(Error)
-
-}
-
-public struct Glide {
+    public enum Result<T> {
+        case success(T)
+        case error(Error)
+    }
 
     public struct Frame {
 
@@ -25,7 +22,7 @@ public struct Glide {
         /// Represents which part of the image to use when painting the frame
         let cropRect: CGRect
 
-        /// Represents where the frame will be painted within the `Glide.outputWindow`
+        /// Represents where the frame will be painted within the output of size `Glide.outputSize`
         let outputWindow: CGRect
 
         let backgroundColor: CGColor
@@ -147,7 +144,9 @@ public struct Glide {
         try? FileManager.default.removeItem(at: path)
         guard let assetWriter = try? AVAssetWriter(outputURL: path, fileType: fileType.foundationFileType) else {
             // TODO: Better error
-            completion(Result.error(NSError()))
+            DispatchQueue.main.async {
+                completion(Result.error(NSError()))
+            }
             return
         }
         let assetWriterInput = AVAssetWriterInput(size: outputSize, codec: codec)
@@ -156,7 +155,9 @@ public struct Glide {
 
         if !assetWriter.didAdd(assetWriterInput) {
             // TODO: Better error
-            completion(Result.error(NSError()))
+            DispatchQueue.main.async {
+                completion(Result.error(NSError()))
+            }
             return
         }
 
@@ -164,7 +165,9 @@ public struct Glide {
             assetWriter.startSession(atSourceTime: kCMTimeZero)
             guard let _ = pixelBufferAdaptor.pixelBufferPool else {
                 // TODO: Better error
-                completion(Result.error(NSError()))
+                DispatchQueue.main.async {
+                    completion(Result.error(NSError()))
+                }
                 return
             }
 
@@ -182,25 +185,33 @@ public struct Glide {
                                 assetWriterInput.markAsFinished()
                                 assetWriter.cancelWriting()
                                 // TODO: Better error
-                                completion(Result.error(NSError()))
+                                DispatchQueue.main.async {
+                                    completion(Result.error(NSError()))
+                                }
                                 break
                             }
 
                             frameCount += 1
                             progress.completedUnitCount = frameCount
-                            progressHandler?(progress)
+                            DispatchQueue.main.async {
+                                progressHandler?(progress)
+                            }
                         }
                     } else {
                         assetWriterInput.markAsFinished()
                         assetWriter.finishWriting {
-                            completion(Result.success(path))
+                            DispatchQueue.main.async {
+                                completion(Result.success(path))
+                            }
                         }
                     }
                 }
             }
         } else {
             // TODO: Better error
-            completion(Result.error(NSError()))
+            DispatchQueue.main.async {
+                completion(Result.error(NSError()))
+            }
             return
         }
     }
