@@ -7,6 +7,30 @@ import AppKit
 
 struct TestData {
 
+    static func createCacheFolder() {
+        var isDirectory: ObjCBool = true
+        if !FileManager.default.fileExists(atPath: URL.cacheFolder.absoluteString, isDirectory: &isDirectory) {
+            try? FileManager.default.createDirectory(at: URL.cacheFolder,
+                                                     withIntermediateDirectories: true,
+                                                     attributes: nil)
+            print("Created folder at: \(URL.cacheFolder.absoluteString)")
+        }
+    }
+
+    static func removeCacheFolder() {
+        try? FileManager.default.removeItem(at: URL.cacheFolder)
+    }
+
+    static var basicPaths: [URL] {
+        let paths = [
+            Bundle.tests.url(forResource: "01", withExtension: "png"),
+            Bundle.tests.url(forResource: "02", withExtension: "jpg"),
+            Bundle.tests.url(forResource: "03", withExtension: "gif")
+        ]
+
+        return paths.flatMap { $0 }
+    }
+
     static var sunsetTimelapsePaths: [URL] {
         let paths = [
             Bundle.tests.url(forResource: "2014-09-23@18-49-25", withExtension: "jpg"),
