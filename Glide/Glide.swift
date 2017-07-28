@@ -6,106 +6,99 @@
 import Foundation
 import AVFoundation
 
-public class Glide {
+public enum Result<T> {
+    case success(T)
+    case error(Error)
+}
 
-    public enum Result<T> {
-        case success(T)
-        case error(Error)
-    }
+public struct Frame {
 
-    public struct Frame {
+    let imagePath: URL
 
-        let imagePath: URL
+    let repeatCounter: Int64
 
-        let repeatCounter: Int64
+    /// Represents which part of the image to use when painting the frame
+    let cropRect: CGRect
 
-        /// Represents which part of the image to use when painting the frame
-        let cropRect: CGRect
+    /// Represents where the frame will be painted within the output of size `Glide.outputSize`
+    let outputWindow: CGRect
 
-        /// Represents where the frame will be painted within the output of size `Glide.outputSize`
-        let outputWindow: CGRect
+    let backgroundColor: CGColor
 
-        let backgroundColor: CGColor
-
-        var image: CGImage? {
-            if let imageSource = CGImageSourceCreateWithURL(imagePath as CFURL, nil) {
-                var image = CGImageSourceCreateImageAtIndex(imageSource, 0, nil)
-                if cropRect != CGRect.zero {
-                    image = image?.cropping(to: cropRect)
-                }
-
-                return image
+    var image: CGImage? {
+        if let imageSource = CGImageSourceCreateWithURL(imagePath as CFURL, nil) {
+            var image = CGImageSourceCreateImageAtIndex(imageSource, 0, nil)
+            if cropRect != CGRect.zero {
+                image = image?.cropping(to: cropRect)
             }
 
-            return nil
+            return image
         }
 
-        init(imagePath path: URL, outputWindow anOutputWindow: CGRect, repeat aRepeatCounter: Int64 = 1, cropRect aCropRect: CGRect = CGRect.zero, backgroundColor aBackgroundColor: CGColor = CGColor.black) {
-            imagePath = path
-            repeatCounter = aRepeatCounter
-            outputWindow = anOutputWindow
-            cropRect = aCropRect
-            backgroundColor = aBackgroundColor
-        }
-
+        return nil
     }
 
-    public enum GlideError: Error {
-        case UnsupportedCodec
-        case UnknownMediaSize
-        case BadConfiguration
-        case WorkInProgressError
+    public init(imagePath path: URL, outputWindow anOutputWindow: CGRect, repeat aRepeatCounter: Int64 = 1, cropRect aCropRect: CGRect = CGRect.zero, backgroundColor aBackgroundColor: CGColor = CGColor.black) {
+        imagePath = path
+        repeatCounter = aRepeatCounter
+        outputWindow = anOutputWindow
+        cropRect = aCropRect
+        backgroundColor = aBackgroundColor
     }
 
-    public enum FileType {
-        case mov
-        case mp4
-        case m4v
-        case mobile3GPP
-        case mobile3GPP2
+}
 
-        fileprivate var foundationFileType: AVFileType {
-            switch self {
-            case .mov:
-                return AVFileType.mov
-            case .mp4:
-                return AVFileType.mp4
-            case .m4v:
-                return AVFileType.m4v
-            case .mobile3GPP:
-                return AVFileType.mobile3GPP
-            case .mobile3GPP2:
-                return AVFileType.mobile3GPP2
-            }
+public enum FileType {
+    case mov
+    case mp4
+    case m4v
+    case mobile3GPP
+    case mobile3GPP2
+
+    fileprivate var foundationFileType: AVFileType {
+        switch self {
+        case .mov:
+            return AVFileType.mov
+        case .mp4:
+            return AVFileType.mp4
+        case .m4v:
+            return AVFileType.m4v
+        case .mobile3GPP:
+            return AVFileType.mobile3GPP
+        case .mobile3GPP2:
+            return AVFileType.mobile3GPP2
         }
     }
+}
 
-    public enum Codec {
-        case h264
-        case hevc
-        case jpeg
-        case proRes4444
-        case proRes422
+public enum Codec {
+    case h264
+    case hevc
+    case jpeg
+    case proRes4444
+    case proRes422
 
-        fileprivate var foundationCodec: String {
-            switch self {
-            case .h264:
+    fileprivate var foundationCodec: String {
+        switch self {
+        case .h264:
+            return AVVideoCodecH264
+        case .hevc:
+            if #available(OSX 10.13, *) {
+                return AVVideoCodecHEVC
+            } else {
                 return AVVideoCodecH264
-            case .hevc:
-                if #available(OSX 10.13, *) {
-                    return AVVideoCodecHEVC
-                } else {
-                    return AVVideoCodecH264
-                }
-            case .jpeg:
-                return AVVideoCodecJPEG
-            case .proRes4444:
-                return AVVideoCodecAppleProRes4444
-            case .proRes422:
-                return AVVideoCodecAppleProRes422
             }
+        case .jpeg:
+            return AVVideoCodecJPEG
+        case .proRes4444:
+            return AVVideoCodecAppleProRes4444
+        case .proRes422:
+            return AVVideoCodecAppleProRes422
         }
     }
+}
+
+public class Glide {
 
     private let frames: [Frame]
 
@@ -121,21 +114,18 @@ public class Glide {
         return frames.reduce(0) { $0 + $1.repeatCounter }
     }
 
-    public init(frames allFrames: [Frame], frameRate aFrameRate: Int32 = 30, outputSize anOutputSize: CGSize = CGSize.zero, fileType aFileType: FileType = .mov, codec aCodec: Codec = .h264) throws {
+    private let kErrorDomain = "net.jeanetienne.Glide.Error"
+
+    private let kErrorUserInfoMessageKey = "GlideErrorMessage"
+
+    private let kErrorUserInfoAssociatedErrorKey = "GlideErrorAssociatedError"
+
+    public init(frames allFrames: [Frame], frameRate aFrameRate: Int32 = 30, outputSize anOutputSize: CGSize, fileType aFileType: FileType = .mov, codec aCodec: Codec = .h264) {
         frames = allFrames
         frameRate = aFrameRate
+        outputSize = anOutputSize
         fileType = aFileType
         codec = aCodec
-
-        if anOutputSize == CGSize.zero {
-            if let firstImage = allFrames.first?.image {
-                outputSize = CGSize(width: firstImage.width, height: firstImage.height)
-            } else {
-                throw GlideError.UnknownMediaSize
-            }
-        } else {
-            outputSize = anOutputSize
-        }
     }
 
     public func render(at path: URL,
@@ -143,10 +133,9 @@ public class Glide {
                 progressHandler: ((_ progress: Progress) -> ())? = nil) {
         try? FileManager.default.removeItem(at: path)
         guard let assetWriter = try? AVAssetWriter(outputURL: path, fileType: fileType.foundationFileType) else {
-            // TODO: Better error
-            DispatchQueue.main.async {
-                completion(Result.error(NSError()))
-            }
+            complete(completion,
+                     withError: error(withCode: 1,
+                                      message: "Unable to initialize AVAssetWriter. Check validity of render path URL and file type."))
             return
         }
         let assetWriterInput = AVAssetWriterInput(size: outputSize, codec: codec)
@@ -154,20 +143,18 @@ public class Glide {
                                                                       assetWriterInput: assetWriterInput)
 
         if !assetWriter.didAdd(assetWriterInput) {
-            // TODO: Better error
-            DispatchQueue.main.async {
-                completion(Result.error(NSError()))
-            }
+            complete(completion,
+                     withError: error(withCode: 2,
+                                      message: "Unable to add an AVAssetWriterInput. Check validity of output size and codec."))
             return
         }
 
         if assetWriter.startWriting() {
             assetWriter.startSession(atSourceTime: kCMTimeZero)
             guard let _ = pixelBufferAdaptor.pixelBufferPool else {
-                // TODO: Better error
-                DispatchQueue.main.async {
-                    completion(Result.error(NSError()))
-                }
+                complete(completion,
+                         withError: error(withCode: 3,
+                                          message: "Unable to create a CVPixelBufferPool."))
                 return
             }
 
@@ -184,10 +171,11 @@ public class Glide {
                             if !pixelBufferAdaptor.append(frame: nextFrame, forOutputSize: self.outputSize, at: frameTime) {
                                 assetWriterInput.markAsFinished()
                                 assetWriter.cancelWriting()
-                                // TODO: Better error
-                                DispatchQueue.main.async {
-                                    completion(Result.error(NSError()))
-                                }
+
+                                let errorMessage = "Unable to append frame to pixel buffer"
+                                self.complete(completion,
+                                              withError: self.error(withCode: 4,
+                                                                    message: errorMessage))
                                 break
                             }
 
@@ -208,11 +196,32 @@ public class Glide {
                 }
             }
         } else {
-            // TODO: Better error
-            DispatchQueue.main.async {
-                completion(Result.error(NSError()))
-            }
+            complete(completion,
+                     withError: error(withCode: 5,
+                                      message: "AVAssetWriter was unable to start writing. See associated error.",
+                                      associatedError: assetWriter.error))
             return
+        }
+    }
+
+    private func error(withCode code: Int, message: String, associatedError: Error? = nil) -> Result<URL> {
+        var userInfo: [String: Any] = [
+            kErrorUserInfoMessageKey: message
+        ]
+
+        if let associatedError = associatedError {
+            userInfo[kErrorUserInfoAssociatedErrorKey] = associatedError
+        }
+
+        return Result.error(NSError(domain: kErrorDomain,
+                                    code: code,
+                                    userInfo: userInfo))
+
+    }
+
+    private func complete(_ completion: @escaping (Result<URL>) -> (), withError error: Result<URL>) {
+        DispatchQueue.main.async {
+            completion(error)
         }
     }
 
@@ -233,7 +242,7 @@ fileprivate extension AVAssetWriter {
 
 fileprivate extension AVAssetWriterInput {
 
-    fileprivate convenience init(size: CGSize, codec: Glide.Codec) {
+    fileprivate convenience init(size: CGSize, codec: Codec) {
         let videoSettings = [
             AVVideoCodecKey: codec.foundationCodec as AnyObject,
             AVVideoWidthKey: size.width as AnyObject,
@@ -257,7 +266,7 @@ fileprivate extension AVAssetWriterInputPixelBufferAdaptor {
                   sourcePixelBufferAttributes: sourceBufferAttributes)
     }
 
-    fileprivate func append(frame: Glide.Frame, forOutputSize outputSize: CGSize, at presentationTime: CMTime) -> Bool {
+    fileprivate func append(frame: Frame, forOutputSize outputSize: CGSize, at presentationTime: CMTime) -> Bool {
         guard let pixelBufferPool = pixelBufferPool else {
             return false
         }
@@ -268,10 +277,10 @@ fileprivate extension AVAssetWriterInputPixelBufferAdaptor {
                                                                     pixelBufferPool,
                                                                     pixelBufferPointer)
 
-        guard let pixelBuffer = pixelBufferPointer.pointee,
-            pixelBufferCreated == kCVReturnSuccess else {
-                // TODO: Better error
-                NSLog("error: Failed to allocate pixel buffer from pool")
+        guard let
+            pixelBuffer = pixelBufferPointer.pointee,
+            pixelBufferCreated == kCVReturnSuccess
+            else {
                 return false
         }
 
@@ -289,7 +298,7 @@ fileprivate extension AVAssetWriterInputPixelBufferAdaptor {
 
 fileprivate extension CVPixelBuffer {
 
-    fileprivate func fill(withFrame frame: Glide.Frame, forOutputSize outputSize: CGSize) {
+    fileprivate func fill(withFrame frame: Frame, forOutputSize outputSize: CGSize) {
         guard let image = frame.image else {
             return
         }
