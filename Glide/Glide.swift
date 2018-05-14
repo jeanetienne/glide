@@ -304,8 +304,8 @@ fileprivate extension AVAssetWriterInputPixelBufferAdaptor {
         let appendSucceeded = append(pixelBuffer,
                                      withPresentationTime: presentationTime)
 
-        pixelBufferPointer.deinitialize()
-        pixelBufferPointer.deallocate(capacity: pixelBufferCapacity)
+        pixelBufferPointer.deinitialize(count: pixelBufferCapacity)
+        pixelBufferPointer.deallocate()
 
         return appendSucceeded
     }
