@@ -13,14 +13,14 @@ public enum Result<T> {
 
 public struct Progress {
 
-    let totalUnitCount: Int64
-    var completedUnitCount: Int64 = 0
-    var localizedDescription: String
-    var isCompleted: Bool {
+    public let totalUnitCount: Int64
+    public var completedUnitCount: Int64 = 0
+    public var localizedDescription: String
+    public var isCompleted: Bool {
         return completedUnitCount == totalUnitCount
     }
 
-    init(totalUnitCount: Int64) {
+    public init(totalUnitCount: Int64) {
         self.totalUnitCount = totalUnitCount
         self.localizedDescription = "Adding \(totalUnitCount) images..."
     }
