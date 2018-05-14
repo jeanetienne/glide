@@ -11,6 +11,22 @@ public enum Result<T> {
     case error(Error)
 }
 
+public struct Progress {
+
+    let totalUnitCount: Int64
+    var completedUnitCount: Int64 = 0
+    var localizedDescription: String
+    var isCompleted: Bool {
+        return completedUnitCount == totalUnitCount
+    }
+
+    init(totalUnitCount: Int64) {
+        self.totalUnitCount = totalUnitCount
+        self.localizedDescription = "Adding \(totalUnitCount) images..."
+    }
+
+}
+
 public struct Frame {
 
     let imagePath: URL
@@ -158,7 +174,7 @@ public class Glide {
                 return
             }
 
-            let progress = Progress(totalUnitCount: totalFrameCount)
+            var progress = Progress(totalUnitCount: totalFrameCount)
             var frameCount: Int64 = 0
             var iterator = frames.makeIterator()
 
