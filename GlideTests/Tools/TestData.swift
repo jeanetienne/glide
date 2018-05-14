@@ -28,7 +28,7 @@ struct TestData {
             Bundle.tests.url(forResource: "03", withExtension: "gif")
         ]
 
-        return paths.flatMap { $0 }
+        return paths.compactMap { $0 }
     }
 
     static var sunsetTimelapsePaths: [URL] {
@@ -252,7 +252,7 @@ struct TestData {
             Bundle.tests.url(forResource: "2014-09-23@20-02-47", withExtension: "jpg")
         ]
 
-        return paths.flatMap { $0 }
+        return paths.compactMap { $0 }
     }
 
     static var dayTimelapsePaths: [URL] {
@@ -309,7 +309,7 @@ struct TestData {
             Bundle.tests.url(forResource: "2014-09-23@16-18-59", withExtension: "jpg")
         ]
 
-        return paths.flatMap { $0 }
+        return paths.compactMap { $0 }
     }
 
 }
