@@ -116,25 +116,25 @@ public enum Codec {
 
 public class Glide {
 
-    private let frames: [Frame]
+    public let frames: [Frame]
 
-    private let frameRate: Int32
+    public let frameRate: Int32
 
-    private let fileType: FileType
+    public let fileType: FileType
 
-    private let codec: Codec
+    public let codec: Codec
 
-    private let outputSize: CGSize
+    public let outputSize: CGSize
 
-    private var totalFrameCount: Int64 {
+    public var totalFrameCount: Int64 {
         return frames.reduce(0) { $0 + $1.repeatCounter }
     }
 
-    private let kErrorDomain = "net.jeanetienne.Glide.Error"
+    public static let errorDomain = "net.jeanetienne.Glide.Error"
 
-    private let kErrorUserInfoMessageKey = "GlideErrorMessage"
+    public static let errorUserInfoMessageKey = "GlideErrorMessage"
 
-    private let kErrorUserInfoAssociatedErrorKey = "GlideErrorAssociatedError"
+    public static let errorUserInfoAssociatedErrorKey = "GlideErrorAssociatedError"
 
     public init(frames allFrames: [Frame], frameRate aFrameRate: Int32 = 30, outputSize anOutputSize: CGSize, fileType aFileType: FileType = .mov, codec aCodec: Codec = .h264) {
         frames = allFrames
@@ -222,14 +222,14 @@ public class Glide {
 
     private func error(withCode code: Int, message: String, associatedError: Error? = nil) -> Result<URL> {
         var userInfo: [String: Any] = [
-            kErrorUserInfoMessageKey: message
+            Glide.errorUserInfoMessageKey: message
         ]
 
         if let associatedError = associatedError {
-            userInfo[kErrorUserInfoAssociatedErrorKey] = associatedError
+            userInfo[Glide.errorUserInfoAssociatedErrorKey] = associatedError
         }
 
-        return Result.error(NSError(domain: kErrorDomain,
+        return Result.error(NSError(domain: Glide.errorDomain,
                                     code: code,
                                     userInfo: userInfo))
 
